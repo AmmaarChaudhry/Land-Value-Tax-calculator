@@ -68,7 +68,9 @@ def csvDistrictQuery(district):
     district_price_median = district_data["price"].median()
     median_district_plot = glsTesting()
     price_per_sqm = district_price_median / median_district_plot
-    print(f"The median price per sqm is: {price_per_sqm.round()}")
+    print(f"The median price per sqm is: £{price_per_sqm.round()}")
+    land_value_per_sqm = price_per_sqm * 0.3
+    print(f"The land value per sqm is: £{land_value_per_sqm.round()}")
 
 def guiFunct():
     root = tk.Tk()
