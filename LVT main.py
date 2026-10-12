@@ -93,9 +93,28 @@ def glsTesting():
     return median_polygon_area
 
 
+def landValueConst():
+    
+    #di is the density const
+    #dmed is the avg density const for all LLAs
+    #qi is the area desirability score 
+    #population-density-table.csv
+    di = 0
+    
+def areaDesirability(district_council):
+    IMDlowerDF = pd.read_excel("File_10_-_IoD2025_Local_Authority_District_Summaries__lower-tier__v2.xlsx",sheet_name="IMD")
+    
+    matches = IMDlowerDF[
+    IMDlowerDF["Local Authority District name (2024)"] == district_council]
 
-
-
+    if matches.empty:
+        print(f"No results found for district council: {district_council}")
+        imd_average_score = None
+    else:
+        imd_average_score = matches.iloc[0]["IMD - Average score "]
+        print(imd_average_score)
+        return imd_average_score
     
 
-guiFunct()
+#guiFunct()
+areaDesirability("Southampton")
