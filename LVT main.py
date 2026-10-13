@@ -1,6 +1,7 @@
 import pandas as pd
 import tkinter as tk
 import geopandas as gpd
+import numpy as np
 #print(panda.__version__)
 """
 Plan:
@@ -93,42 +94,44 @@ def glsTesting():
     return median_polygon_area
 
 
-def landValueConst():
-    
-    #di is the density const
-    #dmed is the avg density const for all LLAs
-    #qi is the area desirability score 
-    #population-density-table.csv
-    di = 0
+
     
 def areaDesirability(district_council):
-    IMDlowerDF = pd.read_excel("File_10_-_IoD2025_Local_Authority_District_Summaries__lower-tier__v2.xlsx",sheet_name="IMD")
-    
+    IMDlowerDF = pd.read_excel(
+        "File_10_-_IoD2025_Local_Authority_District_Summaries__lower-tier__v2.xlsx",
+        sheet_name="IMD"
+    )
+
+    score_col = "IMD - Average score "
+    council_col = "Local Authority District name (2024)"
+
+    # Ensure IMD scores are numeric
+    IMDlowerDF[score_col] = pd.to_numeric(
+        IMDlowerDF[score_col], errors="coerce"
+    )
+
+    # Calculate mean and standard deviation across all councils
+    mean_score = IMDlowerDF[score_col].mean()
+    std_score = IMDlowerDF[score_col].std()
+
+    # Calculate standardised desirability:
+    # Reverse the sign because lower deprivation = higher desirability
+    IMDlowerDF["desirability"] = -(
+        (IMDlowerDF[score_col] - mean_score) / std_score
+    )
+
+    # Find the requested council
     matches = IMDlowerDF[
-    IMDlowerDF["Local Authority District name (2024)"] == district_council]
-
-    if matches.empty:
-        print(f"No results found for district council: {district_council}")
-        imd_average_score = None
-    else:
-        imd_average_score = matches.iloc[0]["IMD - Average score "]
-        print(imd_average_score)
-        return imd_average_score
-    
-def OldareaDensity(district_council):
-    populationDF = pd.read_csv("population-density-table.csv")
-
-    matches = populationDF[
-        populationDF["areanm"] == district_council
+        IMDlowerDF[council_col].str.strip().str.casefold()
+        == district_council.strip().casefold()
     ]
 
     if matches.empty:
         print(f"No results found for district council: {district_council}")
-        population_density = None
-    else:
-        population_density = matches.iloc[-1]["value"]
-        print(population_density)
-        return population_density
+        return None
+
+    return float(matches.iloc[0]["desirability"])
+
 
 def areaDensity(district_council):
     populationDF = pd.read_csv("population-density-table.csv")
@@ -161,10 +164,39 @@ def areaDensity(district_council):
     return int(population_density), float(median_density)
 
 #guiFunct()
-areaDesirability("Southampton")
-#print(areaDensity("Southampton"))
+
+def landValueConst(district_council):
+    
+    #di is the density const
+    #dmed is the avg density const for all LLAs
+    #desirability is the area desirability score
+    #clipped_land_const is the land vale constant (* it with price_per_sqm to get land val per sqm) and has been clipped
+    di , dmed = areaDensity(district_council)
+    desirability = areaDesirability(district_council) * 0.1
+    
+    if di is None or dmed is None or desirability is None:
+        return None
+    if di <= 0 or dmed <= 0:
+        return None
+    
+    
+    density_ratio = di / dmed
+    ln_density_ratio = 0.05 * np.log(density_ratio)
+    ln_density_plus_desirability = ln_density_ratio + desirability
+    
+    land_const = np.exp(ln_density_plus_desirability) *0.4
+    clipped_land_const = np.clip(land_const,0.15,0.7)
+    
+    return clipped_land_const
+
 
 density, median_density = areaDensity("Southampton")
 
 print(f"Southampton density: {density}")
 print(f"Median density: {median_density}")
+
+score = areaDesirability("Southampton")
+print(f"Southampton desirability score: {score:.3f}")
+
+land_val_test = landValueConst("Southampton")
+print(f"Soton land val const: {land_val_test}")
