@@ -115,6 +115,56 @@ def areaDesirability(district_council):
         print(imd_average_score)
         return imd_average_score
     
+def OldareaDensity(district_council):
+    populationDF = pd.read_csv("population-density-table.csv")
+
+    matches = populationDF[
+        populationDF["areanm"] == district_council
+    ]
+
+    if matches.empty:
+        print(f"No results found for district council: {district_council}")
+        population_density = None
+    else:
+        population_density = matches.iloc[-1]["value"]
+        print(population_density)
+        return population_density
+
+def areaDensity(district_council):
+    populationDF = pd.read_csv("population-density-table.csv")
+
+    #convert periods to dates so the latest record is selected correctly
+    populationDF["period"] = pd.to_datetime(populationDF["period"])
+    populationDF["value"] = pd.to_numeric(
+        populationDF["value"], errors="coerce"
+    )
+
+    # Keep latest record for each local authority
+    latestDF = (
+        populationDF
+        .sort_values("period")
+        .drop_duplicates(subset="areanm", keep="last")
+    )
+
+    #calculate the overall median density
+    median_density = latestDF["value"].median()
+
+    #finds row for specified local authority
+    matches = latestDF[latestDF["areanm"] == district_council]
+
+    if matches.empty:
+        print(f"No results found for district council: {district_council}")
+        population_density = None
+    else:
+        population_density = matches.iloc[0]["value"]
+
+    return int(population_density), float(median_density)
 
 #guiFunct()
 areaDesirability("Southampton")
+#print(areaDensity("Southampton"))
+
+density, median_density = areaDensity("Southampton")
+
+print(f"Southampton density: {density}")
+print(f"Median density: {median_density}")
